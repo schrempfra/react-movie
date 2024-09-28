@@ -1,15 +1,28 @@
 'use client';
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
+
+interface Movie {
+  id: number;
+  title: string;
+  poster_path: string | null; // Allow null values
+  vote_average: number;
+  release_date: string;
+}
+
+interface ApiResponse {
+  results: Movie[];
+  total_pages: number;
+}
 
 export default function Home() {
-  let [movies, setMovies] = useState([]);
-  let [page, setPage] = useState(1);
-  let [error, setError] = useState(null);
-  let [loading, setLoading] = useState(false);
-  let [search, setSearch] = useState(''); // Add search state
-  let [totalPages, setTotalPages] = useState(1);
+  let [movies, setMovies] = useState<Movie[]>([]);
+  let [page, setPage] = useState<number>(1);
+  let [error, setError] = useState<Error | null>(null);
+  let [loading, setLoading] = useState<boolean>(false);
+  let [search, setSearch] = useState<string>(''); // Add search state
+  let [totalPages, setTotalPages] = useState<number>(1);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
@@ -19,23 +32,21 @@ export default function Home() {
       : `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&page=${page}`;
     fetch(url)
       .then(response => response.json())
-      .then(data => {
-        console.log(data);
+      .then((data: ApiResponse) => {
         setMovies(data.results);
         setTotalPages(data.total_pages);
         setLoading(false);
       })
-      .catch(error => {
+      .catch((error: Error) => {
         setError(error);
         setLoading(false);
       });
   }, [page, search]); // Add search to dependency array
 
-  const handleSearchChange = (e) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setPage(1); // Reset page to 1 when search changes
   };
-
 
   const handleNextPage = () => setPage(prevPage => prevPage + 1);
   const handlePrevPage = () => setPage(prevPage => Math.max(prevPage - 1, 1));
@@ -71,14 +82,20 @@ export default function Home() {
             {movies.map(movie => (
               <div key={movie.id} className="overflow-hidden">
                 <div className="relative w-full h-80 bg-gray-800 rounded-md">
-                  <Image
-                    className="w-full h-80 object-cover rounded-md "
-                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                    alt={movie.title}
-                    width={150}
-                    height={225}
-                    priority
-                  />
+                  {movie.poster_path ? (
+                    <Image
+                      className="w-full h-80 object-cover rounded-md"
+                      src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                      alt={movie.title}
+                      width={150}
+                      height={225}
+                      priority
+                    />
+                  ) : (
+                    <div className="w-full h-80 flex items-center justify-center bg-gray-700 text-white">
+                      No Image Available
+                    </div>
+                  )}
                   <div className="absolute -bottom-5 right-2 w-10 h-10 bg-gray-200 rounded-full dark:bg-gray-700 flex items-center justify-center">
                     <div className="relative w-full h-full rounded-full flex items-center justify-center text-white text-xs">
                       <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 36 36">
@@ -97,7 +114,6 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-
                 <div className="p-3 text-white">
                   <h2 className="text-md font-extrabold">{movie.title}</h2>
                   <p className="mb-2 text-md">Release Date: {new Date(movie.release_date).toLocaleDateString('de-DE')}</p>
