@@ -7,38 +7,67 @@ export default function Home() {
   let [movies, setMovies] = useState([]);
   let [page, setPage] = useState(1);
   let [error, setError] = useState(null);
-  let [loading, setLoading] = useState(false); // Add loading state
+  let [loading, setLoading] = useState(false);
+  let [search, setSearch] = useState(''); // Add search state
+  let [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-    setLoading(true); // Start loading
-    fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&page=${page}`)
+    setLoading(true);
+    const url = search
+      ? `https://api.themoviedb.org/3/search/movie?query=${search}&api_key=${apiKey}&page=${page}`
+      : `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&page=${page}`;
+    fetch(url)
       .then(response => response.json())
       .then(data => {
         console.log(data);
-        setMovies(data.results); // Assuming the API returns an array of movies in `data.results`
-        setLoading(false); // Stop loading
+        setMovies(data.results);
+        setTotalPages(data.total_pages);
+        setLoading(false);
       })
       .catch(error => {
         setError(error);
-        setLoading(false); // Stop loading
+        setLoading(false);
       });
-  }, [page]);
+  }, [page, search]); // Add search to dependency array
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPage(1); // Reset page to 1 when search changes
+  };
+
 
   const handleNextPage = () => setPage(prevPage => prevPage + 1);
   const handlePrevPage = () => setPage(prevPage => Math.max(prevPage - 1, 1));
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="max-w-7xl mx-auto">
+      <div className="flex justify-center my-4">
+        <div className="relative w-full max-w-md py-10">
+          <input
+            type="text"
+            value={search}
+            onChange={handleSearchChange}
+            placeholder="Search for movies..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-500" data-slot="icon" fill="none" strokeWidth="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
       {error ? (
         <div className="text-red-500 text-center">An error occurred: {error.message}</div>
-      ) : loading ? ( // Show loading indicator
+      ) : loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="loader"></div> {/* Spinner */}
+          <div className="loader"></div>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div></div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5  gap-4">
             {movies.map(movie => (
               <div key={movie.id} className="overflow-hidden">
                 <div className="relative w-full h-80 bg-gray-800 rounded-md">
@@ -86,14 +115,14 @@ export default function Home() {
             </button>
             <button
               onClick={handleNextPage}
-              className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-3 rounded-full shadow-lg transform transition-transform duration-300 hover:scale-105"
+              disabled={page >= totalPages} // Disable if on the last page
+              className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-3 rounded-full shadow-lg transform transition-transform duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
           </div>
         </>
-      )
-      }
-    </div >
+      )}
+    </div>
   );
 }
