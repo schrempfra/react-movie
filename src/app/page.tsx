@@ -116,7 +116,7 @@ export default function Home() {
                 </div>
                 <div className="p-3 text-white">
                   <h2 className="text-md font-extrabold">{movie.title}</h2>
-                  <p className="mb-2 text-md">Release Date: {new Date(movie.release_date).toLocaleDateString('de-DE')}</p>
+                  <p className="mb-2 text-md">{new Date(movie.release_date).toLocaleDateString('de-DE')}</p>
                 </div>
               </div>
             ))}
