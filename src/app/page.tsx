@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useState, ChangeEvent } from "react";
+import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 interface Movie {
   id: number;
@@ -17,19 +19,41 @@ interface ApiResponse {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+
   let [movies, setMovies] = useState<Movie[]>([]);
-  let [page, setPage] = useState<number>(1);
+  let [page, setPage] = useState<number>(initialPage);
   let [error, setError] = useState<Error | null>(null);
   let [loading, setLoading] = useState<boolean>(false);
-  let [search, setSearch] = useState<string>(''); // Add search state
+  let [search, setSearch] = useState<string>(initialSearch);
   let [totalPages, setTotalPages] = useState<number>(1);
 
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
     setLoading(true);
+
+    const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    if (!apiKey) {
+      setError(new Error("API key is missing"));
+      setLoading(false);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      api_key: apiKey,
+      page: page.toString(),
+    });
+
+    if (search) {
+      params.append('query', search);
+    }
+
     const url = search
-      ? `https://api.themoviedb.org/3/search/movie?query=${search}&api_key=${apiKey}&page=${page}`
-      : `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&page=${page}`;
+      ? `https://api.themoviedb.org/3/search/movie?${params.toString()}`
+      : `https://api.themoviedb.org/3/movie/popular?${params.toString()}`;
+
     fetch(url)
       .then(response => response.json())
       .then((data: ApiResponse) => {
@@ -41,6 +65,10 @@ export default function Home() {
         setError(error);
         setLoading(false);
       });
+
+    // Update the URL with search and page parameters
+    router.push(`/?search=${search}&page=${page}`);
+
   }, [page, search]); // Add search to dependency array
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
